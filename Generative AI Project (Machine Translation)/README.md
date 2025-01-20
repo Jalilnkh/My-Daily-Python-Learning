@@ -20,4 +20,7 @@ So I need metrics to see how my model will work.
 
 This step want me to deploy my model info application but I would keep this step away because the model that I trained here is just for learning purposes.
 
+But of course I will use the course to learn how to optimize model before deploying and try to understand limitation of my model and how to solve it.
+
+
 
