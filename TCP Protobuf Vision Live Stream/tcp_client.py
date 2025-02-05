@@ -49,4 +49,4 @@ def send_data(image_path):
     print("Data sent successfully!")
 
 if __name__ == "__main__":
-    send_data("test_image.jpg")
+    send_data("test_image.jpeg")
