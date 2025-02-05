@@ -1,0 +1,6 @@
+syntax = "proto3";
+
+message ImageFeatureData {
+  bytes image_data = 1;
+  repeated float features = 2;
+}
