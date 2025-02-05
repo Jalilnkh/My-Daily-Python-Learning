@@ -1,42 +1,58 @@
 import socket
 import data_pb2  # Import generated protobuf module
 import struct
+import cv2
+import numpy as np
 
+# Server Code
 def receive_data():
+    """
+    Function to receive Protobuf image data and save it.
+    """
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server_socket.bind(("0.0.0.0", 5005))
     server_socket.listen(5)
     
     print("Server is listening on port 5005...")
-    
-    conn, addr = server_socket.accept()
-    print(f"Connected by {addr}")
 
     while True:
-        # Receive the length of the incoming message (4 bytes)
-        data_length = conn.recv(4)
-        if not data_length:
-            break
+        conn, addr = server_socket.accept()
+        print(f"Connected by {addr}")
 
-        message_size = struct.unpack(">I", data_length)[0]
-        data = conn.recv(message_size)
+        try:
+            while True:
+                # Receive message length (4 bytes)
+                data_length = conn.recv(4)
+                if not data_length:
+                    break
 
-        # Deserialize the Protobuf message
-        img_feature_data = data_pb2.ImageFeatureData()
-        img_feature_data.ParseFromString(data)
+                message_size = struct.unpack(">I", data_length)[0]
+                data = b""
 
-        # Save the received image
-        with open("received_image.jpg", "wb") as img_file:
-            img_file.write(img_feature_data.image_data)
+                # Receive complete message
+                while len(data) < message_size:
+                    packet = conn.recv(message_size - len(data))
+                    if not packet:
+                        break
+                    data += packet
 
-        # Print Feature 1 and Feature 2 details
-        print("Feature 1 (Integers):", img_feature_data.feature1.values)
-        print("Feature 1 (Nested List):", img_feature_data.feature1.nested_list)
+                # Deserialize Protobuf message
+                img_feature_data = data_pb2.ImageFeatureData()
+                img_feature_data.ParseFromString(data)
 
-        print("Feature 2 (Floats):", img_feature_data.feature2.values)
-        print("Feature 2 (Nested List):", img_feature_data.feature2.nested_list)
+                # Save received image
+                with open("received_image.jpg", "wb") as img_file:
+                    img_file.write(img_feature_data.image_data)
 
-    conn.close()
+                # Print Features
+                print("Received Features (float):", list(img_feature_data.features))
+
+        except Exception as e:
+            print(f"Error: {e}")
+
+        finally:
+            conn.close()
+            print("Connection closed.")
 
 if __name__ == "__main__":
     receive_data()
