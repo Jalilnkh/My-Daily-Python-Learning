@@ -1,90 +1,23 @@
 import os
 import cv2
-import mediapipe as mp
-import numpy as np
 import torch
+import numpy as np
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import Dataset, DataLoader
 from tqdm import tqdm
-import time
-
-# -------------------- 1. Feature Extractor (Ensure 32 Features Output) --------------------
-class FeatureExtractor:
-    def __init__(self, num_frames=35, frame_size=64):
-        self.num_frames = num_frames
-        self.frame_size = frame_size
-        self.pose = mp.solutions.pose.Pose()
-        self.optical_flow = cv2.optflow.createOptFlow_DualTVL1()
-
-    def extract_features(self, video_path):
-        cap = cv2.VideoCapture(video_path)
-        ret, prev_frame = cap.read()
-        if not ret:
-            return np.zeros((self.num_frames, 32))  # Return empty feature set
-
-        prev_frame = cv2.resize(
-            cv2.cvtColor(prev_frame, cv2.COLOR_BGR2GRAY),
-            (self.frame_size, self.frame_size),
-        )
-        frames = []
-        raw_frames = []
-
-        for _ in range(self.num_frames):
-            ret, frame = cap.read()
-            if not ret:
-                break
-
-            frame_gray = cv2.resize(
-                cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY),
-                (self.frame_size, self.frame_size),
-            )
-            raw_frames.append(frame_gray)
-            flow = self.optical_flow.calc(
-                prev_frame, frame_gray, None
-            )  # Compute Optical Flow
-            prev_frame = frame_gray
-
-            # Optical Flow Features (Flatten to 1D)
-            flow_features = np.mean(flow, axis=(0, 1))  # Average over entire frame
-
-            # Extract Pose Landmarks (Ensure exactly 30 values)
-            pose_results = self.pose.process(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
-            pose_features = []
-            if pose_results.pose_landmarks:
-                for landmark in pose_results.pose_landmarks.landmark[
-                    :15
-                ]:  # Use only 15 points (x, y)
-                    pose_features.append(landmark.x)
-                    pose_features.append(landmark.y)
-            else:
-                pose_features = [0] * 30  # Fill with zeros if no pose detected
-
-            # Ensure exactly 32 features per frame
-            feature_vector = np.concatenate((flow_features, pose_features))[
-                :32
-            ]  # Crop or pad
-            breakpoint()
-            frames.append(feature_vector)
-
-        cap.release()
-
-        # Ensure num_frames by duplicating last frame if needed
-        while len(frames) < self.num_frames:
-            frames.append(frames[-1] if frames else np.zeros(32))
-
-        return np.array(frames)
 
 
-# -------------------- 2. Video Dataset --------------------
+# -------------------- 1. Video Dataset (No Feature Extraction) --------------------
 class VideoDataset(Dataset):
-    def __init__(self, root_dir, feature_extractor):
+    def __init__(self, root_dir, num_frames=35, frame_size=64):
         self.root_dir = root_dir
         self.classes = os.listdir(root_dir)
         self.class_to_idx = {cls: idx for idx, cls in enumerate(self.classes)}
         self.video_paths = []
         self.labels = []
-        self.feature_extractor = feature_extractor
+        self.num_frames = num_frames
+        self.frame_size = frame_size
 
         for cls in self.classes:
             cls_path = os.path.join(root_dir, cls)
@@ -98,11 +31,38 @@ class VideoDataset(Dataset):
     def __getitem__(self, idx):
         video_path = self.video_paths[idx]
         label = self.labels[idx]
-        features = self.feature_extractor.extract_features(video_path)
-        return torch.tensor(features, dtype=torch.float32), label
+        frames = self._load_video(video_path)
+        return torch.tensor(frames, dtype=torch.float32), label
+
+    def _load_video(self, video_path):
+        cap = cv2.VideoCapture(video_path)
+        frames = []
+        total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        frame_indices = np.linspace(0, total_frames - 1, self.num_frames, dtype=int)
+
+        for idx in range(total_frames):
+            ret, frame = cap.read()
+            if not ret:
+                break
+            if idx in frame_indices:
+                frame_gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+                frame_resized = cv2.resize(
+                    frame_gray, (self.frame_size, self.frame_size)
+                )
+                frames.append(frame_resized / 255.0)  # Normalize
+
+        cap.release()
+
+        # Ensure exactly num_frames by duplicating last frame if needed
+        while len(frames) < self.num_frames:
+            frames.append(
+                frames[-1] if frames else np.zeros((self.frame_size, self.frame_size))
+            )
+
+        return np.array(frames).reshape(self.num_frames, -1)  # Flatten each frame
 
 
-# -------------------- 3. FastGRNN Model --------------------
+# -------------------- 2. FastGRNN Model --------------------
 class FastGRNN(nn.Module):
     def __init__(self, input_dim, hidden_dim, num_classes):
         super(FastGRNN, self).__init__()
@@ -115,13 +75,13 @@ class FastGRNN(nn.Module):
     def forward(self, x):
         h_t = torch.zeros(x.size(0), self.W.out_features).to(x.device)
         for t in range(x.size(1)):  # Iterate through time steps
-            x_t = x[:, t, :]  # Get features for frame t
+            x_t = x[:, t, :]  # Get raw frame
             h_tilde = torch.tanh(self.W(x_t) + self.U(h_t))
             h_t = self.alpha * h_tilde + self.beta * h_t
         return self.fc(h_t)
 
 
-# -------------------- 4. Train FastGRNN --------------------
+# -------------------- 3. Train FastGRNN --------------------
 def train(
     model,
     train_loader,
@@ -163,7 +123,7 @@ def train(
             print(f"✅ Model saved: {save_path}")
 
 
-# -------------------- 5. Load Model for Inference --------------------
+# -------------------- 4. Load Model for Inference --------------------
 def load_model(model, load_path="fastgrnn_model.pth", device="cpu"):
     model.load_state_dict(torch.load(load_path, map_location=device))
     model.to(device)
@@ -171,15 +131,33 @@ def load_model(model, load_path="fastgrnn_model.pth", device="cpu"):
     print(f"✅ Model loaded from {load_path}")
 
 
-# -------------------- 6. Inference --------------------
-def predict(model, video_path, feature_extractor, device):
+# -------------------- 5. Inference --------------------
+def predict(model, video_path, device, frame_size=64, num_frames=35):
     model.to(device)
     model.eval()
 
+    cap = cv2.VideoCapture(video_path)
+    frames = []
+    total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    frame_indices = np.linspace(0, total_frames - 1, num_frames, dtype=int)
+
+    for idx in range(total_frames):
+        ret, frame = cap.read()
+        if not ret:
+            break
+        if idx in frame_indices:
+            frame_gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+            frame_resized = cv2.resize(frame_gray, (frame_size, frame_size))
+            frames.append(frame_resized / 255.0)
+
+    cap.release()
+
+    # Ensure exactly num_frames
+    while len(frames) < num_frames:
+        frames.append(frames[-1] if frames else np.zeros((frame_size, frame_size)))
+
     features = (
-        torch.tensor(
-            feature_extractor.extract_features(video_path), dtype=torch.float32
-        )
+        torch.tensor(np.array(frames).reshape(num_frames, -1), dtype=torch.float32)
         .unsqueeze(0)
         .to(device)
     )
@@ -190,23 +168,21 @@ def predict(model, video_path, feature_extractor, device):
 
     return predicted.item()
 
-
-# -------------------- 7. Run Training and Inference (With Saving/Loading) --------------------
+import time
+# -------------------- 6. Run Training and Inference --------------------
 if __name__ == "__main__":
     dataset_path = "/home/jalilnkh/.cache/kagglehub/datasets/sharjeelmazhar/human-activity-recognition-video-dataset/versions/1/Human Activity Recognition - Video Dataset/"  
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    # Initialize Feature Extractor
-    feature_extractor = FeatureExtractor(num_frames=35, frame_size=64)
-
     # Create Dataset
-    train_dataset = VideoDataset(dataset_path, feature_extractor)
+    train_dataset = VideoDataset(dataset_path, num_frames=35, frame_size=32)
     train_loader = DataLoader(train_dataset, batch_size=4, shuffle=True)
 
     # Initialize Model
-    model = FastGRNN(input_dim=32, hidden_dim=16, num_classes=5)
+    input_dim = 32 * 32  # Raw frame size (flattened)
+    model = FastGRNN(input_dim=input_dim, hidden_dim=32, num_classes=5)
     criterion = nn.CrossEntropyLoss()
-    optimizer = optim.Adam(model.parameters(), lr=0.0001)
+    optimizer = optim.Adam(model.parameters(), lr=0.001)
 
     # Train and Save the Model
     train(
@@ -216,18 +192,18 @@ if __name__ == "__main__":
         optimizer,
         device,
         epochs=10,
-        save_path="models/fastgrnn_model.pth",
+        save_path="models/fastgrnn_model_raw_imgs.pth",
     )
 
     # Load the Model for Inference
-    load_model(model, load_path="models/fastgrnn_model.pth", device=device)
+    load_model(model, load_path="models/fastgrnn_model_raw_imgs.pth", device=device)
 
     # Test inference on a new video
     test_video = "/home/jalilnkh/.cache/kagglehub/datasets/sharjeelmazhar/human-activity-recognition-video-dataset/versions/1/Human Activity Recognition - Video Dataset/Walking/Walking (1).mp4"  # Replace with actual test video
 
     start_time = time.time()
     print("Start: ", (time.time() - start_time) * 1000.0)
-    prediction = predict(model, test_video, feature_extractor, device)
+    prediction = predict(model, test_video, device, frame_size=32, num_frames=35)
     print("After pred: ", (time.time() - start_time) * 1000.0)
 
     print(f"🎯 Predicted Class: {train_dataset.classes[prediction]}")
