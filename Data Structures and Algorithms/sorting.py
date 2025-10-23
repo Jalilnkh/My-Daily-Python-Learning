@@ -7,11 +7,12 @@ def simple_sorting_func(arr):
 
 def insertion_sort(arr):
     """Sorts a list in ascending order using the insertion sort algorithm."""
-    for i in range(1, len(arr)):
-        key = arr[i]
-        j = i - 1
-        while j >= 0 and key < arr[j]:
-            arr[j + 1] = arr[j]
-            j -= 1
-        arr[j + 1] = key
+    for i in range(len(arr)):
+        for j in range(i, 0, -1):
+            if arr[j-1] > arr[j]:
+                a = arr[j-1]
+                arr[j-1] = arr[j]
+                arr[j] = a
+            else:
+                break
     return arr
