@@ -18,9 +18,7 @@ def insertion_sort(arr):
     return arr
 
 def swap(arr, left, right):
-    swap_var = arr[left]
-    arr[right] = swap_var
-    arr[left] = swap_var
+    arr[left], arr[right] = arr[right], arr[left]
     return arr
 
 def merge(arr, left, mid, right):
@@ -30,24 +28,24 @@ def merge(arr, left, mid, right):
     while i <= mid and j <= right:
         if arr[i] < arr[j]:
             temp_arr.append(arr[i])
-            i = i + 1
+            i += 1
         else:
             temp_arr.append(arr[j])
-            j = j + 1
-    if i < mid:
-        temp_arr.extend(arr[i:mid])
-    if j < right:
-        temp_arr.extend(arr[j:right])
-    return temp_arr
+            j += 1
+    while i <= mid:
+        temp_arr.append(arr[i])
+        i += 1
+    while j <= right:
+        temp_arr.append(arr[j])
+        j += 1
+    # Copy temp_arr back to arr
+    for idx, val in enumerate(temp_arr):
+        arr[left + idx] = val
 
 def merge_sort(arr, left, right):
     if left >= right:
-        return arr
-    if left + 1 == right:
-        if arr[left] > arr[right]:
-            return swap(arr, left, right)
-    else:
-        mid = (left + right) // 2
-        merge_sort(arr, left, mid)
-        merge_sort(arr, mid+1, right)
-        merge(arr, left, mid, right)     
+        return
+    mid = (left + right) // 2
+    merge_sort(arr, left, mid)
+    merge_sort(arr, mid + 1, right)
+    merge(arr, left, mid, right)
