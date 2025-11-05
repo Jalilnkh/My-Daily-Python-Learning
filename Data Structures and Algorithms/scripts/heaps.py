@@ -40,3 +40,8 @@ def heap_bubble_down(H:list, index:int, heap_size:int)->list:
         heap_bubble_down(H, smallest_child_index, heap_size)
 
     return H
+
+def heap_insert(heap_arr, new_value, index):
+    heap_arr.append(new_value)  # Add the new value at the end
+    new_heap_arr = heap_bubble_up(heap_arr, index)
+    return new_heap_arr
