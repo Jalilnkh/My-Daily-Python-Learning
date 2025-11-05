@@ -45,3 +45,12 @@ def heap_insert(heap_arr, new_value, index):
     heap_arr.append(new_value)  # Add the new value at the end
     new_heap_arr = heap_bubble_up(heap_arr, index)
     return new_heap_arr
+
+def heap_delete(heap_arr, del_index, heap_size):
+    heap_arr = swap(heap_arr, del_index, heap_size - 1)  # Swap with the last element
+    heap_arr.pop()  # Remove the last element
+    if heap_arr[del_index] > heap_arr[parent(del_index)]:
+        heap_bubble_down(heap_arr, del_index, len(heap_arr))
+    if heap_arr[del_index] < heap_arr[parent(del_index)]:
+        heap_bubble_up(heap_arr, del_index)
+    return heap_arr
