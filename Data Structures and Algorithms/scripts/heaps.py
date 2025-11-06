@@ -54,3 +54,9 @@ def heap_delete(heap_arr, del_index, heap_size):
     if heap_arr[del_index] < heap_arr[parent(del_index)]:
         heap_bubble_up(heap_arr, del_index)
     return heap_arr
+
+def array_to_heap(arr):
+    arr_size = len(arr)
+    for i in range(arr_size//2, 0, -1):
+        arr = heap_bubble_down(arr, i, arr_size)
+    return arr
