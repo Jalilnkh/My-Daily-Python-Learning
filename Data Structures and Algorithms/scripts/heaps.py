@@ -61,8 +61,6 @@ def maxheap_bubble_down(H:list, index:int, heap_size:int)->list:
 
     return H
 
-
-
 def heap_insert(heap_arr, new_value, index):
     heap_arr.append(new_value)  # Add the new value at the end
     new_heap_arr = heap_bubble_up(heap_arr, index)
@@ -96,3 +94,65 @@ def heap_sort(arr_to_sort):
         swap(heap_max_array, 0, i)
         maxheap_bubble_down(heap_max_array, 0, i)
     return heap_max_array
+
+# HashTable creation
+class HashTableTest:
+    def __init__(self, size=10):
+        self.size = size
+        self.table = [[] for _ in range(size)]
+    
+    def _hash(self, key):
+        """Simple hash function using module"""
+        if isinstance(key, str):
+            return sum(ord(char) for char in key) % self.size
+        return hash(key) % self.size
+
+    def insert(self, key, value):
+        """Insert key-value pair into hash table"""
+        index = self._hash(key)
+        bucket = self.table[index]
+
+        # Check if hey already exists, update value
+        for i, (k, _) in enumerate(bucket):
+            if k == key:
+                bucket[i] = (key, value)
+                print(f"Updated: {key} -> {value} at index {index}")
+                return
+        
+        # Key does not exist, add new entry
+        bucket.append((key, value))
+        print(f"Inserted: {key} -> {value} at index {index}")
+
+    def delete(self, key):
+        """Delete key-value pair from hash table"""
+        index = self._hash(key)
+        bucket = self.table[index]
+
+        for i, (k, _) in enumerate(bucket):
+            if k == key:
+                deleted_value = bucket.pop(i)
+                print(f"Deleted: {key} -> {deleted_value[1]} from index {index}")
+                return deleted_value[1]
+        
+        print(f"Key '{key}' not found")
+        return None
+
+    def get(self, key):
+        """Retrieve value by key"""
+        index = self._hash(key)
+        bucket = self.table[index]
+
+        for k, v in bucket:
+            if k == key:
+                return v
+        return None
+
+    def display(self):
+        """Display the entire hash table"""
+        print("\n--- Hash Table Contents ---")
+        for i, bucket in enumerate(self.table):
+            if bucket:
+                print(f"Index {i}: {bucket}")
+            else:
+                print(f"Index {i}: []")
+        print("----------------------------\n")
