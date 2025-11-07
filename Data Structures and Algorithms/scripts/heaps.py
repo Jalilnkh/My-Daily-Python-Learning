@@ -22,6 +22,7 @@ def left_child(index:int)->int:
 def right_child(index:int)->int:
     return 2 * index + 2
 
+
 def minheap_bubble_down(H:list, index:int, heap_size:int)->list:
     smallest_child_index = index
     left_child_index = left_child(index)
@@ -38,6 +39,25 @@ def minheap_bubble_down(H:list, index:int, heap_size:int)->list:
     if smallest_child_index != index:
         swap(H, index, smallest_child_index)
         minheap_bubble_down(H, smallest_child_index, heap_size)
+
+    return H
+
+def maxheap_bubble_down(H:list, index:int, heap_size:int)->list:
+    largest_child_index = index
+    left_child_index = left_child(index)
+    right_child_index = right_child(index)
+
+    # Check if left child exists and is LARGER than current largest
+    if left_child_index < heap_size and H[largest_child_index] < H[left_child_index]:
+        largest_child_index = left_child_index
+    
+    # Check if right child exists and is LARGER than current largest  
+    if right_child_index < heap_size and H[largest_child_index] < H[right_child_index]:
+        largest_child_index = right_child_index
+    
+    if largest_child_index != index:
+        swap(H, index, largest_child_index)
+        maxheap_bubble_down(H, largest_child_index, heap_size)
 
     return H
 
@@ -59,7 +79,7 @@ def heap_delete(heap_arr, del_index, heap_size):
 
 def array_to_minheap(arr):
     arr_size = len(arr)
-    for i in range(arr_size//2, 0, -1):
+    for i in range(arr_size//2-1, -1, -1):
         arr = minheap_bubble_down(arr, i, arr_size)
     return arr
 
