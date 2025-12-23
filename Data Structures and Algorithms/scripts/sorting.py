@@ -49,3 +49,4 @@ def merge_sort(arr, left, right):
     merge_sort(arr, left, mid)
     merge_sort(arr, mid + 1, right)
     merge(arr, left, mid, right)
+
