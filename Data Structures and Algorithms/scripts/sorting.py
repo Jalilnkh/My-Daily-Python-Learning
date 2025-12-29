@@ -1,4 +1,5 @@
 
+import random
 
 def simple_sorting_func(arr):
     """A simple sorting function that sorts a list in ascending order."""
@@ -72,4 +73,40 @@ def quicksort_lomuto(arr, left=0, right=None):
         quicksort_lomuto(arr, left, p-1)
         quicksort_lomuto(arr, p+1, right)
     return arr
-    
+
+def quickselect(arr, k, left=0, right=None, use_random_pivot=True):
+    """
+    Returns the k-th smallest element (1-based k) from arr using Quickselect.
+    """
+    if right is None:
+        right = len(arr) - 1
+    if not (1 <= k <= len(arr)):
+        raise ValueError("k must be between 1 and len(arr)")
+
+    while left <= right:
+        if use_random_pivot:
+            pivot_index = random.randint(left, right)
+            arr[pivot_index], arr[right] = arr[right], arr[pivot_index] 
+
+        pivot = arr[right]
+        i = left
+        for j in range(left, right):
+            if arr[j] < pivot:
+                arr[i], arr[j] = arr[j], arr[i]
+                i += 1
+        arr[i], arr[right] = arr[right], arr[i]
+        p = i
+
+        rank = p - left + 1
+
+        if rank == k:
+            return arr[p]
+        elif k < rank:
+            right = p - 1
+        else:
+            k = k - rank
+            left = p + 1
+
+    # Should not reach here if k is valid
+    raise RuntimeError("Quickselect failed due to unexpected state.")
+
