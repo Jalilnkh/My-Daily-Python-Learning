@@ -50,3 +50,26 @@ def merge_sort(arr, left, right):
     merge_sort(arr, mid + 1, right)
     merge(arr, left, mid, right)
 
+def lomuto_partition(arr, left, right):
+    """
+        Partition using the last element as pivot (Lomuto)
+    """
+    pivot = arr[right]
+    i = left
+    for j in range(left, right):
+        if arr[j] < pivot:
+            arr[i], arr[j] = arr[j], arr[i]
+            i += 1
+    arr[i], arr[right] = arr[right], arr[i]
+    return i
+
+def quicksort_lomuto(arr, left=0, right=None):
+    """Quick sort algorithm using lomuto partition scheme"""
+    if right is None:
+        right = len(arr) - 1
+    if left < right:
+        p = lomuto_partition(arr, left, right)
+        quicksort_lomuto(arr, left, p-1)
+        quicksort_lomuto(arr, p+1, right)
+    return arr
+    
