@@ -3,7 +3,8 @@ import random
 import os
 import hashlib
 import hmac
-from typing import Tuple
+from typing import Tuple, Iterable
+import math
 
 class AffineHash:
     """
@@ -40,3 +41,68 @@ def verify_password(password: str, salt: bytes, stored_dk: bytes, iterations: in
     dk = hashlib.pbkdf2_hmac('sha256', password.encode('utf-8'), salt, iterations)
     return hmac.compare_digest(dk, stored_dk)
 
+
+class BloomFilter:
+    """
+    Simple Bloom filter practices
+    -m: number of bits in the filter
+    - k: number of hash functions
+    """
+    def __init__(self, capacity: int, false_positive_rate: float=0.01):
+        """
+        Create a Bloom filter with given capacity and false positive rate.
+        """
+        if capacity <= 0:
+            raise ValueError("Capacity must be > 0")
+        if not (0 < false_positive_rate < 1):
+            raise ValueError("False positive rate must be between 0 and 1")
+        m = int(-capacity * math.log(false_positive_rate) / (math.log(2) ** 2))
+
+        k = int((m / capacity) * math.log(2))
+
+        self.m = m
+
+        self.k = k
+        self.bits = 0 # bitset stored in integer
+        self.n = 0 # number of inserted elements
+
+    def _hashes(self, item: bytes) -> Iterable[int]:
+        """
+        Generate k indices using double hashing.
+        h1(x), h2(x), then h_i = (h1 + i * h2) mod m
+        """
+        h1 = int.from_bytes(hashlib.sha256(item).digest(), 'big')
+        h2 = int.from_bytes(hashlib.blake2b(item, digest_size=16).digest(), 'big')
+        for i in range(self.k):
+            yield (h1 + i * h2) % self.m
+    
+
+    def add(self, item: str) -> None:
+        b = item.encode('utf-8')
+        changed = False
+        for idx in self._hashes(b):
+            mask = 1 << idx
+            if self.bits & mask == 0:
+                self.bits |= mask
+                changed = True
+        if changed:
+            self.n += 1
+    
+    def __contains__(self, item: str) -> bool:
+        b = item.encode('utf-8')
+        for idx in self._hashes(b):
+            if (self.bits >> idx) & 1 == 0:
+                return False
+        return True
+    
+    def fp_rate_estimate(self) -> float:
+        """Estimate the current false positive rate."""
+        return (1 - math.exp(-self.k * self.n / self.m)) ** self.k
+    
+    def info(self) -> dict:
+        return {
+            "m_bits": self.m,
+            "k_hashes": self.k,
+            "items": self.n,
+            "fp_rate_estimate": round(self.fp_rate_estimate(), 6)
+        }
