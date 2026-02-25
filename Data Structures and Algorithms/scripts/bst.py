@@ -12,19 +12,19 @@ class BST:
         if self.root is None:
             self.root = Node(val)
         else:
-            self._insert_recursive(self.root, val)
+            return self._insert_recursive(self.root, val)
     
     def _insert_recursive(current, val):
         if current.val > val:
             if current.left is None:
                 current.left = Node(val)
             else:
-                self._insert_recursive(current.left, val)
+                return self._insert_recursive(current.left, val)
         else:
             if current.right is None:
                 current.right = Node(val)
             else:
-                self._insert_recursive(current.right, val)
+                return self._insert_recursive(current.right, val)
 
     def find(val):
         self._find_recursive(self.root, val)
@@ -35,9 +35,9 @@ class BST:
         if current.val == val:
             return True
         elif current.val > val:
-            self._find_recursive(current.left, val)
+            return self._find_recursive(current.left, val)
         else:
-            self._find_recursive(current.right, val)
+            return self._find_recursive(current.right, val)
     
     def in_order_traversal(self):
         results = []
@@ -47,9 +47,9 @@ class BST:
     self._in_order(self, current, results):
         if current is None:
             return
-        self._in_order(current.left, results)
+        return self._in_order(current.left, results)
         results.append(current.val)
-        self._in_order(current.right, results)
+        return self._in_order(current.right, results)
 
 
 
