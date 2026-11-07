@@ -188,7 +188,7 @@ def calc_training_panel(df:pd.DataFrame, meta:pd.DataFrame)->pd.DataFrame:
 
 def main():
     parser=argparse.ArgumentParser(description=__doc__,formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument('--universe',type=Path,default=HERE/'dataset/to_download/ai_infrastructure_100_tickers.csv')
+    parser.add_argument('--universe',type=Path,default='dataset/to_download/ai_infrastructure_100_tickers.csv')
     parser.add_argument('--start',default='2018-01-01')
     parser.add_argument('--end',default='2026-11-07',help='Exclusive end date (YYYY-MM-DD)')
     parser.add_argument('--outdir',type=Path,default=HERE/'output')
