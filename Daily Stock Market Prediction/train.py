@@ -26,8 +26,8 @@ import pandas as pd
 from sklearn.metrics import mean_absolute_error, mean_squared_error
 
 HERE = Path(__file__).resolve().parent
-DEFAULT_DATA = HERE / "output" / "stock_training_panel.csv"
-DEFAULT_OUTDIR = HERE / "output" / "lightgbm_weekly"
+DEFAULT_DATA = HERE / "src/output" / "stock_training_panel.csv"
+DEFAULT_OUTDIR = HERE / "src/output" / "lightgbm_weekly"
 HORIZONS = (1, 2, 3, 4, 5)  # Five TRADING sessions, not five calendar days
 GAP = max(HORIZONS)          # Purge labels crossing a split boundary
 SEED = 42
