@@ -17,7 +17,7 @@ import numpy as np
 import exchange_calendars as xcals
 
 # Use exactly the same features as training to avoid inconsistencies.
-from train_stock_lightgbm_week import FEATURES, build_features
+from train import FEATURES, build_features
 
 ROOT = Path(__file__).resolve().parent
 
