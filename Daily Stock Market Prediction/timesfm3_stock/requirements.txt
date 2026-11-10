@@ -1,0 +1,9 @@
+# Use Python 3.10+ and preferably an NVIDIA CUDA GPU.
+# Install a compatible PyTorch build for your GPU before this if needed.
+timesfm[torch]>=3.0.0,<4
+torch>=2.0
+numpy>=1.26
+pandas>=2.0
+matplotlib>=3.7
+yfinance>=0.2.50
+exchange-calendars>=4.5
